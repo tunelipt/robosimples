@@ -18,7 +18,7 @@
 const uint8_t pinos[] = {PINO1, PINO2, PINO3, PINO4, PINO5, PINO6};
 const int NPINOS = 6;
 
-MoveAxis X(PINO1, PINO2, 1000);
+MoveAxis X(PINO1, PINO2, 19750);
 
 void setup() {
 
