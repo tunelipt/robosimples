@@ -18,7 +18,10 @@
 const uint8_t pinos[] = {PINO1, PINO2, PINO3, PINO4, PINO5, PINO6};
 const int NPINOS = 6;
 
-MoveAxis X(PINO1, PINO2, 19750);
+MoveAxis X(PINO1, PINO2, 39500, 19750); // Vel 20 mm/s
+//MoveAxis Y(PINO3, PINO4, 14070, 4690); // Vel 30 mm/s
+//MoveAxis X(PINO5, PINO6, 42150, 1450); // Vel 30 mm/s
+
 
 void setup() {
 
@@ -55,6 +58,8 @@ void loop() {
     
   if (Serial.available() > 0)
   {
+    //delay(200);  // Wait a bit to make sure to receiveto receive an entire line! 
+    
     cmd = Serial.read();
     // For now, only move ('M') or relative move ('R') is accepted
     if (cmd != 'M' && cmd != 'R' && cmd != 'P')
@@ -70,7 +75,7 @@ void loop() {
     len = s.length();
     if (cmd=='P' && len==0){
       Serial.print("V:"); 
-      Serial.println(X.get_position());
+      Serial.println(Z.get_position());
       return;
     }
     

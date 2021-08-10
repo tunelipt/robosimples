@@ -3,6 +3,9 @@
 #ifndef _OEM750_H_
 #define _OEM750_H_
 
+#define MAX_VEL 50000
+#define MAX_ACCEL 50000
+ 
 class MoveAxis{
  public:
   MoveAxis(int pinstep, int pindir, int vel, int acc=0);
@@ -12,6 +15,9 @@ class MoveAxis{
   
   int set_position(int pos=0);
   int get_position();
+
+  int set_velocity(int vel);
+  int set_acceleration(int acc);
   
  private:
   int _position;     ///< Actual position
@@ -19,7 +25,6 @@ class MoveAxis{
   int _pdir;         ///< Direction pin
   int _vel;          ///< Velocity steps/s
   int _acc;         ///< Acceleration steps/s^2
-  int _nus;          ///< Number of us per step/2
 };
 
 
