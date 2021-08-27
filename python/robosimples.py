@@ -7,7 +7,7 @@ from xmlrpc.server import SimpleXMLRPCServer
 class ESPRobo(object):
     
     
-    def __init__(self, dev='/dev/ttyUSB0', mmps=[-1975, 469, 1405],
+    def __init__(self, dev='/dev/ttyUSB0', mmps=[-1975, -469, -1405],
                  axes=dict(x=2, y=1, z=0)):
         self.mmps = mmps  # mm per step
         self.s = serial.Serial(dev, 9600)
@@ -30,10 +30,11 @@ class ESPRobo(object):
         return iax
 
         
-    def move(self, mm=0, axis=0, r=True):
-        npulses = int(mm * self.mmps[axis])
+    def move(self, mm=0, ax=0, r=True):
+        iax = self.iaxis(ax)
+        npulses = int(mm * self.mmps[iax])
         cmdchar = 'R' if r else 'M'
-        cmd = '{}{}!{}'.format(cmdchar, axis, npulses).encode('ASCII')
+        cmd = '{}{}!{}'.format(cmdchar, iax, npulses).encode('ASCII')
         self.s.write(cmd)
         time.sleep(0.5)
         while True:
