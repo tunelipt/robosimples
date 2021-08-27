@@ -8,7 +8,7 @@
  
 class MoveAxis{
  public:
-  MoveAxis(int pinstep, int pindir, int vel, int acc=0);
+  MoveAxis(int pinstep, int pindir, int vel, int acc);
 
   int move(int tostep);
   int rmove(int nstep);

@@ -5,21 +5,36 @@ import argparse
 from xmlrpc.server import SimpleXMLRPCServer
 
 class ESPRobo(object):
-
-    def __init__(self, dev='/dev/ttyUSB0', mmps=-1975):
+    
+    
+    def __init__(self, dev='/dev/ttyUSB0', mmps=[-1975, 469, 1405],
+                 axes=dict(x=2, y=1, z=0)):
         self.mmps = mmps  # mm per step
         self.s = serial.Serial(dev, 9600)
         self.dev = dev
+        self.axes = axes
     def close(self):
         self.s.close()
         return None
-    def rmove(self, mm):
-        nsteps = int(mm * self.mmps)
-        cmd = 'R{}\n'.format(nsteps).encode('ASCII')
-        
-        # Send command and wait until there is a response
-        self.s.write(cmd)
 
+    def iaxis(self, ax=0):
+        if isinstance(ax, str):
+            iax = self.axes[ax.lower()]
+        elif isinstance(ax, int):
+            iax = ax
+        else:
+            raise ValueError('{} is an invalid axis specifier'.format(ax))
+        if not (0 <= iax <= 2):
+            raise ValueError('{} is an invalid axis specifier'.format(ax))
+
+        return iax
+
+        
+    def move(self, mm=0, axis=0, r=True):
+        npulses = int(mm * self.mmps[axis])
+        cmdchar = 'R' if r else 'M'
+        cmd = '{}{}!{}'.format(cmdchar, axis, npulses).encode('ASCII')
+        self.s.write(cmd)
         time.sleep(0.5)
         while True:
             if self.s.in_waiting > 0:
@@ -30,54 +45,57 @@ class ESPRobo(object):
 
         b = self.s.readline()
         r = b.decode('ASCII')
+        return r
+    def moveX(self, mm):
+        return self.move(mm, self.axes['x'], r=False)
+    def moveY(self, mm):
+        return self.move(mm, self.axes['y'], r=False)
+    def moveZ(self, mm):
+        return self.move(mm, self.axes['z'], r=False)
 
-        p = r.find('V:')
-        if p > -1:
-            return True
+    def rmoveX(self, mm):
+        return self.move(mm, self.axes['x'], r=True)
+    def rmoveY(self, mm):
+        return self.move(mm, self.axes['y'], r=True)
+    def rmoveZ(self, mm):
+        return self.move(mm, self.axes['z'], r=True)
+    
+    def position(self, ax=None, pulses=False):
+        if ax is None:
+            # read each axis
+            x = self.position(self.axes['x'], pulses)
+            y = self.position(self.axes['y'], pulses)
+            z = self.position(self.axes['z'], pulses)
+            return(dict(x=x, y=y, z=z))
         else:
-            return False
-    def move(self, mm):
-        nsteps = int(mm * self.mmps)
-        cmd = 'M{}\n'.format(nsteps).encode('ASCII')
-        
-        # Send command and wait until there is a response
-        self.s.write(cmd)
+            iax = self.iaxis(ax)
+            cmd = 'P{}?'.format(iax).encode('ASCII')
+            self.s.write(cmd)
+            time.sleep(0.1)
+            r = self.s.readline().decode('ASCII')
 
-        time.sleep(0.5)
-        while True:
-            if self.s.in_waiting > 0:
-                break
-            time.sleep(0)
-            
-        time.sleep(0.5)
+            pos = int(r[3:])
 
-        b = self.s.readline()
-        r = b.decode('ASCII')
-        
-        p = r.find('V:')
-        if p > -1:
-            return True
+            if pulses:
+                return pos
+            else:
+                return pos / self.mmps[iax]
+
+
+    def set_reference(self, ax, mm=0, pulses=False):
+        iax = self.iaxis(ax)
+
+        if pulses:
+            nsteps = mm
         else:
-            return False
-    def position(self):
-        cmd = 'P\n'.encode('ASCII')
-        self.s.write(cmd)
-        time.sleep(0.2)
-        r = self.s.readline().decode('ASCII')
+            nsteps = int(mm * self.mmps[iax])
 
-        p = r.find('V:')
-
-        ss = int(r[p+2:])
-        mm = ss / self.mmps
-        return mm
-    def set_reference(self, mm=0):
-
-        nsteps = int(mm * self.mmps)
-        cmd = 'P{}\n'.format(nsteps).encode('ASCII')
+        cmd = 'P{}!{}'.format(iax, nsteps).encode('ASCII')
         self.s.write(cmd)
         self.s.flush()
         time.sleep(0.2)
         return self.s.readline()
+    
     
 
         

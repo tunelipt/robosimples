@@ -23,8 +23,8 @@ const int NPINOS = 6;
   
 
 MoveAxis Z(PINO1, PINO2, 39500, 19750); // Vel 20 mm/s
-MoveAxis Y(PINO3, PINO4, 14070, 4690); // Vel 30 mm/s
-MoveAxis X(PINO5, PINO6, 42150, 1450); // Vel 30 mm/s
+MoveAxis Y(PINO3, PINO4, 14070, 7035); // Vel 30 mm/s
+MoveAxis X(PINO5, PINO6, 42150, 21075); // Vel 30 mm/s
 
 MoveAxis *axes[] = {&Z, &Y, &X}; 
 void setup() {
@@ -99,7 +99,7 @@ void loop() {
     
   if (Serial.available() > 0)
   {
-    delay(100);  // Wait a bit to make sure to receiveto receive an entire line! 
+    delay(20);  // Wait a bit to make sure to receiveto receive an entire line! 
     // Read the command character
     cmd = Serial.read();
     
@@ -114,7 +114,7 @@ void loop() {
       return;
       
     }
-    delay(100);
+    delay(20);
     s = Serial.readStringUntil('\n'); 
     s.trim();
     len = s.length();
