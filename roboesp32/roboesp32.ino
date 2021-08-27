@@ -26,7 +26,7 @@ MoveAxis Z(PINO1, PINO2, 39500, 19750); // Vel 20 mm/s
 MoveAxis Y(PINO3, PINO4, 14070, 4690); // Vel 30 mm/s
 MoveAxis X(PINO5, PINO6, 42150, 1450); // Vel 30 mm/s
 
-MoveAxis *axes[] = {&X, &Y, &Z}; 
+MoveAxis *axes[] = {&Z, &Y, &X}; 
 void setup() {
 
   
@@ -36,6 +36,7 @@ void setup() {
        
 }
 
+// Check if the string is a valid + or  integer
 int checkstr(String s)
 {
   int i1 = 0;
@@ -53,8 +54,44 @@ int checkstr(String s)
   return 1;
 }
 
+/*
+ # Communication protocol
+
+ The command has the following structure, using regular expressions:
+ 
+  * `[PMRAV][0-2](!|?)[+-]?[0-9]+`
+
+ The following commands are possible
+  * `P`: get/set postion
+  * `M`: move to a position
+  * `R`: Relative motion
+  * `A`: Acceleration and deceleration ramp (pulses/s^2)
+  * `V`: Terminal velocity (pulses/s)
+
+ Each command is applied to an axis (0,1 or 2) and the command asks for 
+ something(`?`) or sets something (`!`).
+ 
+ A few examples will show better how this works:
+   * `P0?` Get the position of axis 0
+   * `M0!123` Move axis 0 to position 123
+   * `R0!10` Move axis 0 10 units forward with respect to present position
+   * `P1?` Get the position of axis 1
+   * `M1!123` Move axis 1 to position 123
+   * `R1!10` Move axis 1 10 units forward with respect to present position
+   * `A2?` Read the acceleration of axis 2
+   * `A2!1000` Set the acceleration of axis 2 to 1000 pulses/s^2
+   * `V1?` Get the velocity of axis 1
+   * `V2!12000` Set the velocity of axis 2 to 12000 pulses/s
+
+  The functionality is basic but in the future the system should be able to move
+  the 3 axes in lines simultaneously. Some emergency stop is important and the 
+  ability to detect end of line sensors must be added.
+  
+ */
 void loop() {
-  int cmd;
+  char cmd;
+  int query = 0;
+  int axis = -1;
   String s;
   int len = 0;
   int val = 0;
@@ -62,46 +99,129 @@ void loop() {
     
   if (Serial.available() > 0)
   {
-    //delay(200);  // Wait a bit to make sure to receiveto receive an entire line! 
-    
+    delay(100);  // Wait a bit to make sure to receiveto receive an entire line! 
+    // Read the command character
     cmd = Serial.read();
+    
     // For now, only move ('M') or relative move ('R') is accepted
-    if (cmd != 'M' && cmd != 'R' && cmd != 'P')
+    if (cmd != 'M' && cmd != 'R' && cmd != 'P' && cmd != 'V' && cmd != 'A')
     {
-      Serial.print("ERR - Unknown command! -->");
+      Serial.print("ERR - Unknown command! --> ");
+      Serial.println(cmd);
+      
       delay(50);
       s = Serial.readString();
       return;
       
     }
-    s = Serial.readStringUntil('\n');
+    delay(100);
+    s = Serial.readStringUntil('\n'); 
     s.trim();
     len = s.length();
-    if (cmd=='P' && len==0){
-      Serial.print("V:"); 
-      Serial.println(Z.get_position());
+    // Read the axis character
+    if (s[0] == '0')
+      axis = 0;
+    else if (s[0] == '1')
+      axis = 1;
+    else if (s[0] == '2')
+      axis = 2;
+    else{
+      Serial.print("ERR - Unavailable axis. It should be 1,2 or 3. Received: ");
+      Serial.println(s[1]); 
+      
+      delay(50);
+      s = Serial.readString();
       return;
     }
-    
-    if (!checkstr(s))
-      {
-        Serial.println("ERR - Invalid command. Integer expected");
-      }
-    
-    val = s.toInt();
-    
-    if (cmd=='P'){
-      resp = X.set_position(val);
-    }else if (cmd=='R'){
-      resp = X.rmove(val);
-    }else if (cmd=='M'){
-      resp = X.move(val);
+
+    // Read the query character
+    if (s[1] == '!')
+      query = 0;
+    else if (s[1] == '?')
+      query = 1;
+    else{
+      Serial.print("ERR - Unknown option. Expected ! or ? received: ");
+      Serial.println(s[1]);
+      
+      delay(50);
+      s = Serial.readString();
+      return;
     }
 
-    Serial.print("V:");
-    Serial.println(resp);
 
-    return;
+    // If a query, return a value:
+    if (query == 1)
+    {
+      if (cmd == 'A')
+      {
+        Serial.print("A");
+        Serial.print(axis);
+        Serial.print("?");
+        Serial.println(axes[axis]->get_acceleration());
+        return;
+      }
+      else if (cmd == 'V')
+      {
+        Serial.print("V");
+        Serial.print(axis);
+        Serial.print("?");
+        Serial.println(axes[axis]->get_velocity());
+        return;
+      }
+      else if (cmd == 'P')
+      {
+        Serial.print("P");
+        Serial.print(axis);
+        Serial.print("?");
+        Serial.println(axes[axis]->get_position());
+        return;
+      }
+      else
+      {
+        // It doesn't make much sense
+        Serial.print(cmd);
+        Serial.print(axis);
+        Serial.println("?0");
+      }
+    }
+    else
+    {
+      // Read the integer value:
+      String snum = s.substring(2);
+      if (!checkstr(snum)){
+        Serial.print("ERR - The argument should be an integer. Received ");
+        Serial.println(snum); 
+      
+        delay(50);
+        s = Serial.readString();
+        return;
+      }
+      int val = snum.toInt();
+      int rval = 0;
+      if (cmd=='A'){
+         rval = axes[axis]->set_acceleration(val);
+      }else if (cmd=='V'){
+        rval = axes[axis]->set_velocity(val);
+      }else if (cmd=='P'){
+        rval = axes[axis]->set_position(val);
+      }else if (cmd=='R'){
+        rval = axes[axis]->rmove(val);
+      }else if (cmd=='M'){
+        rval = axes[axis]->move(val);
+      }else{
+        Serial.println("ERR - Don't know how we got here!");
+          
+        delay(50);
+        s = Serial.readString();
+        return;
+      }
+      // Build the response
+      Serial.print(cmd);
+      Serial.print(axis);
+      Serial.print("!");
+      Serial.println(rval);    
+      return;
+    }
   }
 
 }     

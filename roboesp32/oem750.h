@@ -17,7 +17,10 @@ class MoveAxis{
   int get_position();
 
   int set_velocity(int vel);
+  int get_velocity();
+
   int set_acceleration(int acc);
+  int get_acceleration();
   
  private:
   int _position;     ///< Actual position

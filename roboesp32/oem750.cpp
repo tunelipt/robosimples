@@ -49,6 +49,10 @@ int MoveAxis::set_position(int pos)
   return oldpos;
 }
 
+int MoveAxis::get_velocity()
+{
+  return _vel;
+}
 
 int MoveAxis::set_velocity(int vel)
 {
@@ -58,6 +62,11 @@ int MoveAxis::set_velocity(int vel)
   _vel = vel;
 
   return _vel;
+}
+
+int MoveAxis::get_acceleration()
+{
+  return _acc;
 }
 
 int MoveAxis::set_acceleration(int acc)
