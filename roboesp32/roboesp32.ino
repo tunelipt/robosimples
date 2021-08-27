@@ -18,11 +18,15 @@
 const uint8_t pinos[] = {PINO1, PINO2, PINO3, PINO4, PINO5, PINO6};
 const int NPINOS = 6;
 
-MoveAxis X(PINO1, PINO2, 39500, 19750); // Vel 20 mm/s
-//MoveAxis Y(PINO3, PINO4, 14070, 4690); // Vel 30 mm/s
-//MoveAxis X(PINO5, PINO6, 42150, 1450); // Vel 30 mm/s
 
+            
+  
 
+MoveAxis Z(PINO1, PINO2, 39500, 19750); // Vel 20 mm/s
+MoveAxis Y(PINO3, PINO4, 14070, 4690); // Vel 30 mm/s
+MoveAxis X(PINO5, PINO6, 42150, 1450); // Vel 30 mm/s
+
+MoveAxis *axes[] = {&X, &Y, &Z}; 
 void setup() {
 
   
